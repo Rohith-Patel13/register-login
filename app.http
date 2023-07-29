@@ -18,3 +18,13 @@ Content-Type: application/json
   "username": "adam_richard",
   "password": "richard_567"
 }
+
+### POST API 3:
+PUT http://localhost:3001/change-password
+Content-Type: application/json
+
+{
+  "username": "adam_richard",
+  "oldPassword": "richard_567",
+  "newPassword": "richard@123"
+}

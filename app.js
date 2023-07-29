@@ -80,9 +80,9 @@ app.post("/login", async (requestObject, responseObject) => {
   the database, such as INSERT, UPDATE, DELETE, or other non-SELECT queries.
   */
   const dbResponse = await dbConnectionObject.get(usernameQuery);
-  //console.log(dbResponse); //{username: 'adam_richard',name: 'Adam Richard',password: '$2b$10$ua5nQasozgZ2jYLtAQfRsusMvYdyuj/3lgM6yz9uCwZFVeN1Epfea', gender: 'male',location: 'Detroit'}
+  console.log(dbResponse); //{username: 'adam_richard',name: 'Adam Richard',password: '$2b$10$ua5nQasozgZ2jYLtAQfRsusMvYdyuj/3lgM6yz9uCwZFVeN1Epfea', gender: 'male',location: 'Detroit'}
   //console.log(dbResponse.username); //adam_richard
-  if (dbResponse.username !== undefined) {
+  if (dbResponse !== undefined) {
     const isPasswordMatched = await bcrypt.compare(
       password,
       dbResponse.password
@@ -94,8 +94,60 @@ app.post("/login", async (requestObject, responseObject) => {
       responseObject.status(400);
       responseObject.send("Invalid password");
     }
-  } else {
+  } else if (dbResponse === undefined) {
     responseObject.status(400);
     responseObject.send("Invalid user");
   }
 });
+
+//API 3:
+app.put("/change-password", async (requestObject, responseObject) => {
+  const requestBody = requestObject.body;
+  /*
+  console.log(requestBody);
+  {
+    username: 'adam_richard',
+    oldPassword: 'richard_567',
+    newPassword: 'richard@123'
+   }
+  */
+  const { username, oldPassword, newPassword } = requestBody;
+  const usernameQuery = `SELECT * FROM user WHERE username='${username}';`;
+  const dbResponse = await dbConnectionObject.get(usernameQuery);
+  /*
+  console.log(dbResponse);
+  {
+  username: 'adam_richard',
+  name: 'Adam Richard',
+  password: '$2b$10$73xBKcLNu8AxLiwtfSgo0eAMI9UA4/.UFO7r2pC5xDIIJHYCJ8xMq',
+  gender: 'male',
+  location: 'Detroit'
+  }
+  */
+  if (dbResponse !== undefined) {
+    const isPasswordMatched = await bcrypt.compare(
+      oldPassword,
+      dbResponse.password
+    );
+    //console.log(isPasswordMatched);
+    if (isPasswordMatched) {
+      if (newPassword.length < 5) {
+        responseObject.status(400);
+        responseObject.send("Password is too short");
+      } else {
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        const changePasswordQuery = `UPDATE user SET password='${hashedNewPassword}';`;
+        await dbConnectionObject.run(changePasswordQuery);
+        responseObject.status(200);
+        responseObject.send("Password updated");
+      }
+    } else {
+      responseObject.status(400);
+      responseObject.send("Invalid current password");
+    }
+  } else if (dbResponse === undefined) {
+    responseObject.status(400);
+    responseObject.send("Invalid user");
+  }
+});
+module.exports = app;
